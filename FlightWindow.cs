@@ -31,6 +31,15 @@ internal sealed class FlightWindow : Form
     public FlightWindow()
     {
         Text = "Fırat Flight";
+        using (var resource = GetType().Assembly.GetManifestResourceStream("WindowIcon.ico"))
+        {
+            if (resource is not null)
+            {
+                var icon = new Icon(resource);
+                Icon = icon;
+                Disposed += (_, _) => icon.Dispose();
+            }
+        }
         ClientSize = new(1160, 735);
         MinimumSize = new(720, 478);
         StartPosition = FormStartPosition.CenterScreen;
