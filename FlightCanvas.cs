@@ -86,8 +86,13 @@ internal sealed class FlightCanvas : Control
             float top = (image.Height - sourceHeight) * .52f;
             g.DrawImage(image, new Rectangle(0, 0, width, height), offset, top, sourceWidth, sourceHeight, GraphicsUnit.Pixel);
         }
-        using var shade = new LinearGradientBrush(new Rectangle(0, 0, width, 160), Color.FromArgb(180, Ink), Color.FromArgb(0, Ink), 90);
-        g.FillRectangle(shade, 0, 0, width, 160);
+        using var shade = new LinearGradientBrush(new Rectangle(0, 0, width, height), Color.FromArgb(180, Ink), Color.FromArgb(0, Ink), 90f);
+        shade.InterpolationColors = new ColorBlend
+        {
+            Colors = [Color.FromArgb(180, Ink), Color.FromArgb(0, Ink), Color.FromArgb(0, Ink)],
+            Positions = [0, 160f / height, 1]
+        };
+        g.FillRectangle(shade, 0, 0, width, height);
         using var mote = new SolidBrush(Color.FromArgb(110, world.Accent));
         for (int i = 0; i < Math.Min(145, width / 24); i++)
         {
