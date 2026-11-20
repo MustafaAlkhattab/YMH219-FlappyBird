@@ -1,47 +1,40 @@
-# Fırat Flight — YMH219 Flappy Bird
+# Fırat Flight
 
-C# ve Windows Forms ile geliştirilen, yer çekimi ve engellerden kaçış temalı masaüstü oyunu.
+YMH219 için C# ve Windows Forms ile yazılmış, Fırat vadisinden gece yaylasına uzanan bir arcade uçuş oyunu.
 
-**Öğrenci:** Mustafa Alkhatta — **250541607**
+**Öğrenci** · Mustafa Alkhatta, 250541607
 
-## Teknolojiler
-- C#, .NET 10, Windows Forms ve System.Drawing.
-- Harici NuGet paketi veya görsel dosyası gerektirmez; oyun grafikleri kodla çizilir.
+## Açılış
 
-## Kurulum ve çalıştırma
-Windows 10/11 ve .NET 10 SDK gereklidir. Visual Studio'da .NET masaüstü geliştirme iş yüküyle `FlappyBird.csproj` açılabilir.
+Windows 10/11 ve .NET 10 SDK gereklidir. Visual Studio'da .NET masaüstü geliştirme iş yükü ile `FlappyBird.csproj` açılıp F5'e basılabilir.
 
 ```powershell
 git clone https://github.com/MustafaAlkhattab/YMH219-FlappyBird.git
 cd YMH219-FlappyBird
-dotnet build -c Release
 dotnet run -c Release
 ```
 
-## Temel özellikler
-- BOŞLUK ile kanat çırpma, zamana bağlı yer çekimi.
-- İki engel çifti, rastgele açıklık konumları ve ekran dışından yeniden dolaşım.
-- Engel, tavan ve zemin çarpışması; Game Over ve yeniden başlatma.
-- Geçilen engel başına bir puan ve puanla artan hız.
-- R: yeni oyun; P: duraklat/devam. Pencere odağı kaybolduğunda otomatik duraklatma.
-- Rekor `%LOCALAPPDATA%/YMH219-FlappyBird/best.txt` dosyasında tutulur.
+## Nasıl oynanır?
 
-## Nesne tabanlı tasarım
-`Bird` hız/konum ve zıplamayı, `Pipe` engel geometrisini, `Game` çarpışma, skor ve durum geçişlerini yönetir. `Form1` sadece giriş, çizim ve zamanlayıcı bağlantısını kurar. `GameCanvas` çift tamponlama ile titremeyi azaltır.
+- **Boşluk, Enter, ↑** veya uçuş alanına tıklama kanat çırpar. Yer çekimi kuşu aşağı çeker.
+- **R / Yeni uçuş** skoru sıfırlar. **P / Duraklat** oyunu duraklatıp sürdürür. Odak kaybında oyun durur.
+- Pencereyi büyütüp küçültebilirsiniz. **F11 / Tam ekran** aynı oranı koruyarak oyun alanını büyütür ve geri döndürür.
+- **Tam rota** Fırat Boğazı'nda başlar. Beş kapıda Kızıl Geçit, on kapıda Ay Yaylası açılır. Ayrı bir bölge seçerek orada doğrudan antrenman yapabilirsiniz.
+- Her geçiş bir puandır. Hız puanla artar. Kızıl Geçit'te aralıklar daralır, Ay Yaylası'nda geçitler hareket eder ve rüzgâr dalgalanır. **Ustalık** daha hızlı ve daha dar bir rota sunar.
+- Zemin, tavan ve kapılar uçuşu bitirir. Oyun bitince Boşluk veya Enter yeni deneme başlatır. Her rota ve zorluk için ayrı rekor saklanır.
+
+## Teknoloji ve tasarım
+
+C# / .NET 10, Windows Forms, GDI+ (System.Drawing) ve System.Text.Json. Harici NuGet paketi yoktur. `Game` sabit zaman adımlarıyla yer çekimi, hareket, çarpışma ve puanlamayı yönetir. `Bird` ve `Gate` ölçüleri ile hareketlerini taşır. `FlightCanvas` sahneyi çift tamponla çizer ve pencereye sığdırır. `HighScores` rekorları yerel olarak saklar.
 
 ## Ekran görüntüleri
-Çalışan uygulamadan alınmıştır.
 
-![Başlangıç ekranı](docs/01-ready.png)
-![Zemin çarpışması ve Game Over](docs/02-game-over.png)
+![Fırat Boğazı başlangıç ekranı](docs/01-ready.png)
+![Tam ekranda Game Over](docs/02-game-over.png)
+![Ay Yaylası uçuş rotası](docs/03-moon.png)
 
-## Kontrol ve sınırlamalar
-- Windows üzerinde Release derlemesi: 0 hata, 0 uyarı.
-- Klavyeyle uçuş, zemin çarpışması ve R ile sıfırlama çalıştırılarak kontrol edildi.
-- Sabit oyun alanı kullanılır; ses efekti yoktur. Rekor dosyasına erişilemiyorsa oyun devam eder, rekor o oturumda bellekte tutulur.
-- Ayrı bir bilgisayarda çalıştırma henüz doğrulanmadı.
+## Doğrulama ve sınırlamalar
 
-## Kısa sözlü hazırlık
-- Timer ekrana düzenli aralıklarla güncelleme gönderir; hareket geçen saniye ile çarpılır.
-- Dikdörtgen kesişmesi çarpışmayı belirler; `Passed` aynı engelden tekrar puan alınmasını önler.
-- `GameStatus` hazır/çalışıyor/duraklatıldı/bitti durumlarını ayırır.
+Windows Release derlemesi ve tam ekran, Enter ile uçuş, çarpışma ve bölge seçimi denenmiştir. Sabit tohumlu bir model denemesinde üç bölge ve yeniden doğan kapılar geçildi. Oyun alanı yan boşluklarla oranı koruyabilir, ses efekti bulunmaz. Rekorlar `%LOCALAPPDATA%\YMH219-FlappyBird\scores.json` dosyasına yazılır. Önceki `best.txt` rekoru Tam rota / Sefer için devralınır.
+
+[Arka plan görseli kaynak ve istemi](art/README.md)
