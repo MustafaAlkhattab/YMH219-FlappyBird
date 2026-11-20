@@ -14,7 +14,7 @@ public partial class Form1 : Form
     private readonly string scorePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "YMH219-FlappyBird", "best.txt");
     public Form1()
     {
-        InitializeComponent(); Controls.Clear();
+        InitializeComponent(); AutoScaleMode = AutoScaleMode.None; Controls.Clear();
         Text = "Fırat Flight | YMH219 Flappy Bird";
         ClientSize = new(840, 690); FormBorderStyle = FormBorderStyle.FixedSingle; MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen; BackColor = Color.FromArgb(15, 23, 42); KeyPreview = true;
@@ -22,7 +22,7 @@ public partial class Form1 : Form
         score.Location = new(570, 28);
         canvas.SetBounds(20, 75, 800, 520); canvas.Paint += DrawGame;
         var restart = MakeButton("Yeni oyun  [R]", 20, (_, _) => { game.Reset(); canvas.Invalidate(); });
-        var pause = MakeButton("Duraklat / Devam  [P]", 215, (_, _) => game.Pause());
+        var pause = MakeButton("Duraklat [P]", 215, (_, _) => game.Pause());
         var hint = new Label { Text = "BOŞLUK: uç  •  R: yeniden başlat  •  P: duraklat\nMustafa Alkhatta · 250541607", ForeColor = Color.FromArgb(203, 213, 225), Location = new(440, 613), Size = new(380, 58), Font = new("Segoe UI", 10) };
         Controls.AddRange([title, score, canvas, restart, pause, hint]);
         try { if (File.Exists(scorePath)) int.TryParse(File.ReadAllText(scorePath), out best); } catch (IOException) { } catch (UnauthorizedAccessException) { }
@@ -75,7 +75,7 @@ public partial class Form1 : Form
             using var overlay = new SolidBrush(Color.FromArgb(195, 15, 23, 42)); g.FillRectangle(overlay, 160, 165, 480, 150);
             using var heading = new Font("Segoe UI", 25, FontStyle.Bold); using var detail = new Font("Segoe UI", 12);
             using var center = new StringFormat { Alignment = StringAlignment.Center };
-            var text = game.Status switch { GameStatus.Over => "GAME OVER", GameStatus.Paused => "DURAKLATILDI", _ => "UÇMAYA HAZIR MISIN?" };
+            var text = game.Status switch { GameStatus.Over => "GAME OVER", GameStatus.Paused => "DURAKLATILDI", _ => "UÇUŞA HAZIR" };
             g.DrawString(text, heading, Brushes.White, new RectangleF(160, 188, 480, 50), center);
             g.DrawString(game.Status == GameStatus.Paused ? "Devam etmek için P tuşuna bas." : "Başlamak için BOŞLUK tuşuna bas.", detail, Brushes.White, new RectangleF(160, 254, 480, 40), center);
         }
@@ -87,3 +87,4 @@ internal sealed class GameCanvas : Panel
 {
     public GameCanvas() { DoubleBuffered = true; ResizeRedraw = true; TabStop = false; }
 }
+
