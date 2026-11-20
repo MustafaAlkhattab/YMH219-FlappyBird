@@ -23,7 +23,7 @@ public partial class Form1 : Form
         canvas.SetBounds(20, 75, 800, 520); canvas.Paint += DrawGame;
         var restart = MakeButton("Yeni oyun  [R]", 20, (_, _) => { game.Reset(); canvas.Invalidate(); });
         var pause = MakeButton("Duraklat [P]", 215, (_, _) => game.Pause());
-        var hint = new Label { Text = "BOŞLUK: uç  •  R: yeniden başlat  •  P: duraklat\nMustafa Alkhatta · 250541607", ForeColor = Color.FromArgb(203, 213, 225), Location = new(440, 613), Size = new(380, 58), Font = new("Segoe UI", 10) };
+        var hint = new Label { Text = "BOŞLUK: uç  |  R: sıfırla  |  P: duraklat\nMustafa Alkhatta · 250541607", ForeColor = Color.FromArgb(203, 213, 225), Location = new(420, 613), Size = new(400, 70), Font = new("Segoe UI", 8) };
         Controls.AddRange([title, score, canvas, restart, pause, hint]);
         try { if (File.Exists(scorePath)) int.TryParse(File.ReadAllText(scorePath), out best); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         KeyDown += (_, e) =>
@@ -87,4 +87,5 @@ internal sealed class GameCanvas : Panel
 {
     public GameCanvas() { DoubleBuffered = true; ResizeRedraw = true; TabStop = false; }
 }
+
 
