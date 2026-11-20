@@ -6,6 +6,7 @@ internal sealed class FlightWindow : Form
 {
     private readonly Game game = new();
     private readonly HighScores scores = new();
+    private readonly FlightMusic music = new();
     private readonly FlightCanvas view;
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 15 };
     private readonly Stopwatch clock = new();
@@ -14,6 +15,7 @@ internal sealed class FlightWindow : Form
     private readonly DeckButton difficulties = new(DeckAction.Difficulty, "Sefer", "Uçuş zorluğunu değiştir");
     private readonly DeckButton restart = new(DeckAction.Restart, "Yeni uçuş", "Yeni uçuş · R");
     private readonly DeckButton pause = new(DeckAction.Pause, "Duraklat", "Duraklat veya devam et · P");
+    private readonly DeckButton sound = new(DeckAction.Music, "Müzik açık", "Müziği aç veya kapat · M");
     private readonly DeckButton screen = new(DeckAction.Screen, "Tam ekran", "Tam ekranı değiştir · F11");
     private readonly ContextMenuStrip routeMenu = CreateMenu();
     private readonly ContextMenuStrip difficultyMenu = CreateMenu();
@@ -48,7 +50,7 @@ internal sealed class FlightWindow : Form
         foreach (FlightDifficulty option in Enum.GetValues<FlightDifficulty>())
             AddMenuOption(difficultyMenu, option.ToString(), () => difficulty = option);
 
-        deck = new(routes, difficulties, restart, pause, screen);
+        deck = new(routes, difficulties, restart, pause, sound, screen);
         view.Controls.Add(deck);
         view.SizeChanged += (_, _) => ArrangeDeck();
         Controls.Add(view);
@@ -56,6 +58,7 @@ internal sealed class FlightWindow : Form
         view.MouseDown += (_, e) => { if (e.Button == MouseButtons.Left) { view.Focus(); Fly(); } };
         restart.Click += (_, _) => Reset();
         pause.Click += (_, _) => { game.TogglePause(); view.Focus(); RefreshHud(); };
+        sound.Click += (_, _) => ToggleMusic();
         screen.Click += (_, _) => ToggleFullscreen();
         routes.Click += (_, _) => OpenMenu(routeMenu, routes, route + 1);
         difficulties.Click += (_, _) => OpenMenu(difficultyMenu, difficulties, (int)difficulty);
@@ -119,15 +122,23 @@ internal sealed class FlightWindow : Form
     {
         if (e.Modifiers != Keys.None || routeMenu.Visible || difficultyMenu.Visible) return;
         if (!view.Focused && e.KeyCode is Keys.Space or Keys.Up or Keys.Enter) return;
-        if (e.KeyCode is not (Keys.Space or Keys.Enter or Keys.Up or Keys.P or Keys.R)) return;
+        if (e.KeyCode is not (Keys.Space or Keys.Enter or Keys.Up or Keys.P or Keys.R or Keys.M)) return;
         e.SuppressKeyPress = true;
         if (!held.Add(e.KeyCode)) return;
         switch (e.KeyCode)
         {
             case Keys.P: game.TogglePause(); RefreshHud(); break;
             case Keys.R: Reset(); break;
+            case Keys.M: ToggleMusic(); break;
             default: Fly(); break;
         }
+    }
+
+    private void ToggleMusic()
+    {
+        music.Toggle();
+        view.Focus();
+        RefreshHud();
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -203,6 +214,9 @@ internal sealed class FlightWindow : Form
     {
         pause.Enabled = game.State is FlightState.Flying or FlightState.Paused;
         pause.Text = game.State == FlightState.Paused ? "Devam et" : "Duraklat";
+        music.Update(game.State == FlightState.Flying);
+        sound.Enabled = music.Available;
+        sound.Text = !sound.Enabled ? "Müzik yok" : music.Enabled ? "Müzik açık" : "Müzik kapalı";
         deck.SetTheme(game.World.Accent);
         view.Best = scores.Get(route, difficulty);
         view.StorageOk = recordStorageOk;
@@ -213,6 +227,7 @@ internal sealed class FlightWindow : Form
     {
         timer.Dispose();
         clock.Stop();
+        music.Dispose();
         routeMenu.Dispose();
         difficultyMenu.Dispose();
         base.OnFormClosed(e);
