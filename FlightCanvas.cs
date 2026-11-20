@@ -17,6 +17,8 @@ internal sealed class FlightCanvas : Control
     internal int Best { get; set; }
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     internal bool StorageOk { get; set; } = true;
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    internal float GameplayBottom { get; set; }
 
     public FlightCanvas(Game game)
     {
@@ -43,46 +45,54 @@ internal sealed class FlightCanvas : Control
     {
         var g = e.Graphics;
         g.Clear(Ink);
-        float scale = Math.Min(ClientSize.Width / (float)Game.Width, ClientSize.Height / (float)Game.Height);
+        // Keep the physics scale uniform and extend the visible world horizontally.
+        // The background still covers the client area at narrow aspect ratios.
+        float sceneHeight = GameplayBottom > 0 ? GameplayBottom : ClientSize.Height - 80;
+        float scale = Math.Min(ClientSize.Width / 700f, sceneHeight / Game.Ground);
         if (scale <= 0) return;
-        g.TranslateTransform((ClientSize.Width - Game.Width * scale) / 2, (ClientSize.Height - Game.Height * scale) / 2);
         g.ScaleTransform(scale, scale);
-        g.SetClip(new Rectangle(0, 0, Game.Width, Game.Height));
+        int width = (int)Math.Ceiling(ClientSize.Width / scale);
+        int height = (int)Math.Ceiling(ClientSize.Height / scale);
+        g.SetClip(new Rectangle(0, 0, width, height));
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 
         var world = game.World;
-        DrawWorld(g, world);
+        DrawWorld(g, world, width, height);
         foreach (var gate in game.Gates)
         {
-            if (gate.X + Gate.Width < 0 || gate.X > Game.Width) continue;
+            if (gate.X + Gate.Width < 0 || gate.X > width) continue;
             DrawGate(g, gate.Upper, world, true);
             DrawGate(g, gate.Lower, world, false);
         }
-        DrawFloor(g, world);
+        DrawFloor(g, world, width, height);
         DrawBird(g, game.Bird, world);
-        DrawHud(g, world);
-        if (game.State != FlightState.Flying) DrawMenu(g, world);
+        DrawHud(g, world, width);
+        if (game.State != FlightState.Flying) DrawMenu(g, world, width);
     }
 
-    private void DrawWorld(Graphics g, World world)
+    private void DrawWorld(Graphics g, World world, int width, int height)
     {
         using var background = new SolidBrush(world.Shadow);
-        g.FillRectangle(background, 0, 0, Game.Width, Game.Height);
+        g.FillRectangle(background, 0, 0, width, height);
         if (art.TryGetValue(world.Art, out var image))
         {
-            float width = image.Height * Game.Width / (float)Game.Height;
-            float offset = (image.Width - width) * (.44f + .39f * MathF.Sin(game.Travel / 2700));
-            g.DrawImage(image, new Rectangle(0, 0, Game.Width, Game.Height), offset, 0, width, image.Height, GraphicsUnit.Pixel);
+            // Use cover sizing instead of squeezing the illustration or drawing side bars.
+            float fit = Math.Max(width / (float)image.Width, height / (float)image.Height);
+            float sourceWidth = Math.Min(image.Width, width / fit);
+            float sourceHeight = Math.Min(image.Height, height / fit);
+            float offset = (image.Width - sourceWidth) * (.44f + .39f * MathF.Sin(game.Travel / 2700));
+            float top = (image.Height - sourceHeight) * .52f;
+            g.DrawImage(image, new Rectangle(0, 0, width, height), offset, top, sourceWidth, sourceHeight, GraphicsUnit.Pixel);
         }
-        using var shade = new LinearGradientBrush(new Rectangle(0, 0, Game.Width, 160), Color.FromArgb(180, Ink), Color.FromArgb(0, Ink), 90);
-        g.FillRectangle(shade, 0, 0, Game.Width, 160);
+        using var shade = new LinearGradientBrush(new Rectangle(0, 0, width, 160), Color.FromArgb(180, Ink), Color.FromArgb(0, Ink), 90);
+        g.FillRectangle(shade, 0, 0, width, 160);
         using var mote = new SolidBrush(Color.FromArgb(110, world.Accent));
-        for (int i = 0; i < 42; i++)
+        for (int i = 0; i < Math.Min(145, width / 24); i++)
         {
-            float x = (i * 131.7f - game.Travel * (.14f + (i % 4) * .035f)) % Game.Width;
-            if (x < 0) x += Game.Width;
+            float x = (i * 131.7f - game.Travel * (.14f + (i % 4) * .035f)) % width;
+            if (x < 0) x += width;
             float y = 100 + (i * 47.9f % 430) + 8 * MathF.Sin(i + game.Time * 1.45f);
             float diameter = i % 8 == 0 ? 4 : 2;
             g.FillEllipse(mote, x, y, diameter * (game.Speed / 255), diameter);
@@ -110,15 +120,17 @@ internal sealed class FlightCanvas : Control
         g.FillRectangle(core, rect.X + rect.Width / 2 - 3, cap + 5, 6, 6);
     }
 
-    private void DrawFloor(Graphics g, World world)
+    private void DrawFloor(Graphics g, World world, int width, int height)
     {
-        using var floor = new SolidBrush(world.Shadow);
-        using var line = new SolidBrush(world.Accent);
-        using var decoration = new Pen(Color.FromArgb(100, world.Accent), 2);
-        g.FillRectangle(floor, 0, Game.Ground, Game.Width, Game.Height - Game.Ground);
-        g.FillRectangle(line, 0, Game.Ground, Game.Width, 3);
-        for (float x = -(game.Travel % 27); x < Game.Width; x += 27)
-            g.DrawLine(decoration, x, 566, x + 9, 556);
+        if (height <= Game.Ground) return;
+        var bounds = new Rectangle(0, Game.Ground, width, height - Game.Ground);
+        using var floor = new LinearGradientBrush(bounds, Color.FromArgb(160, world.Shadow), Ink, 90f);
+        using var line = new SolidBrush(Color.FromArgb(160, world.Accent));
+        using var decoration = new Pen(Color.FromArgb(66, world.Accent), 1.5f);
+        g.FillRectangle(floor, bounds);
+        g.FillRectangle(line, 0, Game.Ground, width, 2);
+        for (float x = -(game.Travel % 36); x < width; x += 36)
+            g.DrawLine(decoration, x, 558, x + 7, 551);
     }
 
     private void DrawBird(Graphics g, Bird bird, World world)
@@ -168,7 +180,7 @@ internal sealed class FlightCanvas : Control
         g.Restore(state);
     }
 
-    private void DrawHud(Graphics g, World world)
+    private void DrawHud(Graphics g, World world, int width)
     {
         using var accent = new SolidBrush(world.Accent);
         using var panel = new SolidBrush(Color.FromArgb(218, Ink));
@@ -179,10 +191,11 @@ internal sealed class FlightCanvas : Control
             using var progress = new SolidBrush(i <= game.WorldIndex ? world.Accent : Color.FromArgb(95, 111, 129));
             g.FillRectangle(progress, 36 + i * 41, 53, 33, 3);
         }
-        g.FillRectangle(panel, 720, 17, 281, 65);
-        DrawStat(g, "SKOR", game.Score.ToString("00"), 735, accent);
-        DrawStat(g, "REKOR", Best.ToString("00"), 810, accent);
-        DrawStat(g, "HIZ", $"{game.Speed / 260:0.00}×", 893, accent);
+        int right = width - 304;
+        g.FillRectangle(panel, right, 17, 281, 65);
+        DrawStat(g, "SKOR", game.Score.ToString("00"), right + 15, accent);
+        DrawStat(g, "REKOR", Best.ToString("00"), right + 90, accent);
+        DrawStat(g, "HIZ", $"{game.Speed / 260:0.00}×", right + 173, accent);
     }
 
     private void DrawStat(Graphics g, string label, string value, int x, Brush accent)
@@ -191,9 +204,9 @@ internal sealed class FlightCanvas : Control
         g.DrawString(value, metric, Brushes.White, x, 38);
     }
 
-    private void DrawMenu(Graphics g, World world)
+    private void DrawMenu(Graphics g, World world, int width)
     {
-        var panel = new RectangleF(275, 157, 474, 235);
+        var panel = new RectangleF((width - 474) / 2f, 155, 474, 235);
         using var dark = new SolidBrush(Color.FromArgb(240, Ink));
         using var accent = new SolidBrush(world.Accent);
         using var outline = new Pen(Color.FromArgb(135, world.Accent));
